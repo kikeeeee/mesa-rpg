@@ -33,6 +33,8 @@ button{cursor:pointer}button:hover{border-color:var(--ac)}
 <label>Sistema</label>
 <div class="opt"><label><input type="radio" name="sys" value="dnd" checked> D&amp;D 5e</label><label><input type="radio" name="sys" value="op"> Ordem Paranormal</label></div>
 <label>Seu nome</label><input type="text" id="me" value="Você">
+<label>Nome do seu personagem (opcional)</label><input type="text" id="cnm" placeholder="Ex.: Thorin Escudo-de-Ferro">
+<label>Classe do seu personagem (opcional)</label><input type="text" id="ccl" placeholder="Ex.: Guerreiro, Ocultista, Bardo…">
 <label>Lore do seu personagem (opcional)</label><textarea id="lore" rows="4" placeholder="Escreva aqui a história do seu personagem. Se deixar vazio, a lore é sorteada. Só vale se você for jogador."></textarea>
 <label>Quem vai jogar?</label>
 <div class="opt"><label><input type="radio" name="mode" value="solo" checked> Sozinho (entram bots)</label><label><input type="radio" name="mode" value="grp"> Com amigos (sem bots)</label></div>
@@ -70,9 +72,9 @@ lu:["a vila de Pedrarroxa","as ruas de Águas Profundas","uma tribo nas montanha
 ev:["mas uma praga dizimou sua família","e foi criado por um mentor misterioso","até que um dragão queimou seu lar","e fugiu após um crime que não cometeu","e jurou vingança contra um culto sombrio"],
 mo:["busca uma relíquia perdida","quer provar seu valor","procura o irmão desaparecido","deseja pagar uma dívida de honra","caça fortuna e glória"],
 se:["uma marca estranha no ombro","um pacto feito com uma entidade","um nome verdadeiro que ninguém conhece","um medo mortal do escuro","uma carta que nunca ousou abrir"],
-sc:["Vocês entram numa taverna esfumaçada; um encapuzado observa do canto.","Um rugido ecoa pela masmorra e as tochas se apagam.","A ponte de corda range. Do outro lado, olhos brilham na névoa.","Um mercador oferece um mapa… por um preço estranho."],
+sc:["Vocês entram numa taverna esfumaçada; um encapuzado observa do canto.","Uma festa de colheita toma a praça, mas ninguém sorri de verdade.","A ponte de corda range. Do outro lado, olhos brilham na névoa.","Um mercador oferece um mapa… por um preço estranho."],
 te:["Percepção","Furtividade","Atletismo","Salvaguarda de Sabedoria","Investigação"],
-ac:["avança com a arma em punho","examina o ambiente com cuidado","tenta uma abordagem diplomática","se esgueira pelas sombras","conjura algo arriscado"],
+ac:["examina o ambiente com cuidado","puxa conversa com um morador","procura pistas pelo lugar","tenta uma abordagem diplomática","anota detalhes num diário"],
 dice:[4,6,8,10,12,20,100]},
 op:{nm:["Rafael","Camila","Davi","Helena","Otávio","Luana","Miguel","Bianca","Caio","Verônica","Tiago","Alice"],cls:["Combatente","Especialista","Ocultista"],sub:["Policial","Médico","Jornalista","Hacker","Padre","Estudante","Ex-militar","Artista"],
 lu:["São Paulo","uma cidadezinha de Minas","o Rio de Janeiro","Porto Alegre","uma ilha no litoral"],
@@ -81,8 +83,10 @@ mo:["investiga o Outro Lado","quer proteger quem ama do Paranormal","busca a ver
 se:["visões de uma Entidade que o observa","uma cicatriz que sangra com a lua","uma tatuagem que não lembra de ter feito","a voz de um falecido que o aconselha","um diário com rituais proibidos"],
 sc:["As luzes do corredor piscam e o rádio chia sussurros ininteligíveis.","Marcas de giz formam um símbolo na parede, ainda úmidas.","Um vulto cruza o fim da rua; a temperatura despenca.","No arquivo há uma pasta sem nome. Ela está quente."],
 te:["Investigação","Percepção","Vontade","Furtividade","Luta"],
-ac:["checa o local com a lanterna","tenta decifrar o símbolo","se posiciona para proteger o grupo","sussurra uma prece","aciona seu equipamento"],
+ac:["checa o local com a lanterna","tenta decifrar o símbolo","conversa com uma testemunha","anota pistas no caderno","pesquisa algo no celular"],
 dice:[4,6,8,10,12,20,100]}};
+D.dnd.ab=["A chuva bate nas janelas de uma estalagem aconchegante. Todos se reúnem para jantar quando um estranho deixa um convite lacrado na mesa.","Uma feira movimentada toma a praça da cidade. Entre as barracas, alguém procura aventureiros para um trabalho discreto.","O grupo acorda numa clareira calma, com uma fogueira apagada e um mapa pregado numa árvore.","Na biblioteca da vila, um velho sábio pede ajuda para decifrar um livro que ninguém consegue abrir."];
+D.op.ab=["A noite está tranquila na cidade, mas um e-mail anônimo chega para todos com a mesma foto de uma casa abandonada.","Vocês se reúnem numa cafeteria depois do expediente. Uma desconhecida deixa uma pasta velha sobre a mesa e vai embora sem falar.","A escola está vazia no fim de semana, mas as luzes da biblioteca estão acesas. Alguém ligou para vocês pedindo ajuda.","Um parente distante deixou uma herança: uma chave e um endereço. Vocês decidem ver do que se trata."];
 let S;
 function mk(sys){const d=D[sys],n=P(d.nm);return{name:n,cls:P(d.cls),sub:P(d.sub),lore:`${n} nasceu em ${P(d.lu)}, ${P(d.ev)}. Hoje ${P(d.mo)}, mas esconde ${P(d.se)}.`}}
 function upd(){const g=val('mode')=='grp',r=val('role');$('#gb').classList.toggle('hide',!g);
@@ -100,6 +104,7 @@ $('#go').onclick=()=>{
  else{ if(r=='gm'){gm={name:me,bot:false};pl=o.map(human)}else{const w=$('#gmw').value;gm={name:w,bot:false};pl=[human(me),...o.filter(x=>x!=w).map(human)]}}
  S={sys,name:$('#cn').value,gm,pl,g};
  const L=$('#lore').value.trim();if(L&&r=='pl')pl[0].lore=L;
+ if(r=='pl'){const a=$('#cnm').value.trim(),b=$('#ccl').value.trim();if(a)pl[0].ch=a;if(b)pl[0].cls=b}
  $('#setup').classList.add('hide');$('#game').classList.remove('hide');start()};
 function start(){
  $('#gt').textContent=S.name;$('#gs').textContent=(S.sys=='dnd'?'D&D 5e':'Ordem Paranormal')+' · Mestre: '+S.gm.name+(S.gm.bot?' (bot)':'')+' · '+(S.pl.some(p=>p.bot)?'com bots':'só humanos');
@@ -107,10 +112,10 @@ function start(){
  const d=D[S.sys];$('#dd').innerHTML=d.dice.map(n=>`<button onclick="rd(${n})">d${n}</button>`).join('');
  $('#sp').innerHTML=S.sys=='dnd'?'<button onclick="adv(1)">d20 Vantagem</button><button onclick="adv(0)">d20 Desvantagem</button>':'<button onclick="opt()">Teste de atributo (qtd = dados; 0 = pior de 2)</button>';
  side();$('#log').innerHTML='';
- say('gm',S.gm.name,S.gm.bot?`Bem-vindos a “${esc(S.name)}”. ${P(d.sc)}`:'A mesa foi aberta. Mestre, narre a cena inicial!');
- if(S.gm.bot)S.pl.filter(p=>p.bot).forEach(p=>setTimeout(()=>botAct(p),500))}
+ say('gm',S.gm.name,S.gm.bot?`Bem-vindos a “${esc(S.name)}”. ${P(d.ab)}`:'A mesa foi aberta. Mestre, narre a cena inicial!');
+ S.pl.filter(p=>p.bot).forEach((p,i)=>setTimeout(()=>say('',p.ch,`Sou ${esc(p.ch)}, ${esc(p.cls)}. ${esc(p.lore.split('. ')[0])}.`),700*(i+1)))}
 function side(){let h=`<div class="card"><h3>Mesa</h3><b>🎭 ${esc(S.gm.name)}</b> <span class="mu">Mestre${S.gm.bot?' (bot)':''}</span></div>`;
- S.pl.forEach((p,i)=>h+=`<div class="card"><b>${esc(p.ch)}</b> <span class="mu">${p.bot?'bot':'jogado por '+esc(p.name)}</span>${p.bot?`<div>${esc(p.cls)} · ${esc(p.sub)}</div>`:`<label>Nome do personagem</label><input type="text" value="${esc(p.ch)}" oninput="S.pl[${i}].ch=this.value"><label>Classe</label><select onchange="S.pl[${i}].cls=this.value">${opts(D[S.sys].cls,p.cls)}</select><label>${S.sys=='dnd'?'Raça':'Origem'}</label><select onchange="S.pl[${i}].sub=this.value">${opts(D[S.sys].sub,p.sub)}</select>`}<details${p.bot?'':' open'}><summary>Lore</summary>${p.bot?`<p>${esc(p.lore)}</p>`:`<textarea rows="6" oninput="S.pl[${i}].lore=this.value">${esc(p.lore)}</textarea>`}</details>${p.bot?'':`<button onclick="rr(${i})">🎲 Novo personagem</button>`}</div>`);$('#side').innerHTML=h}
+ S.pl.forEach((p,i)=>h+=`<div class="card"><b>${esc(p.ch)}</b> <span class="mu">${p.bot?'bot':'jogado por '+esc(p.name)}</span>${p.bot?`<div>${esc(p.cls)} · ${esc(p.sub)}</div>`:`<label>Nome do personagem</label><input type="text" value="${esc(p.ch)}" oninput="S.pl[${i}].ch=this.value"><label>Classe</label><input type="text" list="cl" value="${esc(p.cls)}" oninput="S.pl[${i}].cls=this.value"><label>${S.sys=='dnd'?'Raça':'Origem'}</label><input type="text" list="sb" value="${esc(p.sub)}" oninput="S.pl[${i}].sub=this.value">`}<details${p.bot?'':' open'}><summary>Lore</summary>${p.bot?`<p>${esc(p.lore)}</p>`:`<textarea rows="6" oninput="S.pl[${i}].lore=this.value">${esc(p.lore)}</textarea>`}</details>${p.bot?'':`<button onclick="rr(${i})">🎲 Novo personagem</button>`}</div>`);$('#side').innerHTML=h+`<datalist id="cl">${opts(D[S.sys].cls,'')}</datalist><datalist id="sb">${opts(D[S.sys].sub,'')}</datalist>`}
 const opts=(a,v)=>a.map(x=>`<option${x==v?' selected':''}>${esc(x)}</option>`).join('');
 function rr(i){const p=S.pl[i],c=mk(S.sys);p.ch=c.name;p.cls=c.cls;p.sub=c.sub;p.lore=c.lore;side()}
 function say(k,w,t){const l=$('#log');l.insertAdjacentHTML('beforeend',`<div class="m ${k}"><b>${esc(w)}:</b> ${t}</div>`);l.scrollTop=l.scrollHeight}
