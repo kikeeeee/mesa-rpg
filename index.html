@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mesa de RPG</title>
+<style>
+:root{--bg:#f4efe6;--cd:#fffaf0;--tx:#2a2118;--mu:#7a6a58;--ac:#8c2f39;--bd:#d9ccb6;--ok:#2f7d4f;--ko:#b3261e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17130f;--cd:#221c16;--tx:#eee3d2;--mu:#a89a86;--ac:#d9626d;--bd:#3a3026;--ok:#6fcf97;--ko:#ff8a80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#17130f;--cd:#221c16;--tx:#eee3d2;--mu:#a89a86;--ac:#d9626d;--bd:#3a3026;--ok:#6fcf97;--ko:#ff8a80;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,sans-serif}
+h1,h2,h3{font-family:Georgia,serif;margin:.3em 0}h1{color:var(--ac)}
+main{max-width:1000px;margin:0 auto;padding:16px}
+.card{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:10px 0}
+label{display:block;margin:10px 0 4px;font-weight:600}
+input,select,textarea,button{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 10px}
+input[type=text],textarea,select{width:100%}
+button{cursor:pointer}button:hover{border-color:var(--ac)}
+.pri{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:700}
+.opt{display:flex;gap:8px;flex-wrap:wrap}.opt label{display:flex;gap:6px;align-items:center;font-weight:400;margin:0;border:1px solid var(--bd);border-radius:8px;padding:6px 10px}
+.g{display:grid;grid-template-columns:1fr 300px;gap:12px}@media(max-width:760px){.g{grid-template-columns:1fr}}
+#log{height:380px;overflow:auto}
+.m{padding:6px 0;border-bottom:1px dashed var(--bd)}.m b{color:var(--ac)}.gm b{color:var(--ok)}.dice{background:var(--bg);border-radius:8px;padding:6px 10px;margin:4px 0}
+.dice.c{border-left:4px solid var(--ok)}.dice.f{border-left:4px solid var(--ko)}
+.dd{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.dd button{min-width:58px;font-weight:700}
+.mu{color:var(--mu);font-size:.88em}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.row>*{flex:1;min-width:90px}
+.hide{display:none}details{margin-top:4px}summary{cursor:pointer;color:var(--mu)}
+</style></head><body><main>
+<h1>🎲 Mesa de RPG</h1>
+
+<section id="setup" class="card">
+<h2>Nova campanha</h2>
+<label>Nome da campanha</label><input type="text" id="cn" value="A Névoa sobre Vale Cinzento">
+<label>Sistema</label>
+<div class="opt"><label><input type="radio" name="sys" value="dnd" checked> D&amp;D 5e</label><label><input type="radio" name="sys" value="op"> Ordem Paranormal</label></div>
+<label>Seu nome</label><input type="text" id="me" value="Você">
+<label>Lore do seu personagem (opcional)</label><textarea id="lore" rows="4" placeholder="Escreva aqui a história do seu personagem. Se deixar vazio, a lore é sorteada. Só vale se você for jogador."></textarea>
+<label>Quem vai jogar?</label>
+<div class="opt"><label><input type="radio" name="mode" value="solo" checked> Sozinho (entram bots)</label><label><input type="radio" name="mode" value="grp"> Com amigos (sem bots)</label></div>
+<div id="gb" class="hide"><label>Outros jogadores (separados por vírgula)</label><input type="text" id="oth" value="Ana, Bruno"></div>
+<label>Você quer ser…</label>
+<div class="opt"><label><input type="radio" name="role" value="gm"> Mestre</label><label><input type="radio" name="role" value="pl" checked> Jogador</label></div>
+<div id="gsel" class="hide"><label>Quem será o Mestre?</label><select id="gmw"></select></div>
+<p class="mu" id="hint"></p>
+<button class="pri" id="go">Começar aventura</button>
+</section>
+
+<section id="game" class="hide">
+<h2 id="gt"></h2><div class="mu" id="gs"></div>
+<div class="g"><div>
+<div class="card"><div id="log"></div></div>
+<div class="card">
+<div class="row"><div><label>Quem fala/rola?</label><select id="spk"></select></div></div>
+<div class="row" style="margin-top:8px"><input type="text" id="txt" placeholder="Descreva sua ação ou narração…" style="flex:4"><button class="pri" id="snd">Enviar</button></div>
+</div>
+<div class="card"><h3>Dados</h3>
+<div class="dd" id="dd"></div>
+<div class="row"><div><label>Quantidade</label><input type="number" id="qt" value="1" min="1" max="30"></div><div><label>Bônus</label><input type="number" id="md" value="0"></div></div>
+<div class="dd" id="sp"></div></div>
+</div>
+<div id="side"></div></div>
+</section>
+</main>
+<script>
+const $=s=>document.querySelector(s),R=n=>1+Math.floor(Math.random()*n),P=a=>a[Math.floor(Math.random()*a.length)];
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const val=n=>document.querySelector('input[name='+n+']:checked').value;
+const D={
+dnd:{nm:["Thorin","Lyra","Kael","Mira","Dorn","Selene","Garrick","Nyx","Bram","Elara","Zeph","Isolde"],cls:["Guerreiro","Mago","Ladino","Clérigo","Bardo","Bárbaro","Patrulheiro","Paladino","Bruxo","Druida"],sub:["Humano","Elfo","Anão","Halfling","Meio-orc","Tiefling","Draconato","Gnomo"],
+lu:["a vila de Pedrarroxa","as ruas de Águas Profundas","uma tribo nas montanhas geladas","um mosteiro esquecido","um navio mercante em Porto Calim"],
+ev:["mas uma praga dizimou sua família","e foi criado por um mentor misterioso","até que um dragão queimou seu lar","e fugiu após um crime que não cometeu","e jurou vingança contra um culto sombrio"],
+mo:["busca uma relíquia perdida","quer provar seu valor","procura o irmão desaparecido","deseja pagar uma dívida de honra","caça fortuna e glória"],
+se:["uma marca estranha no ombro","um pacto feito com uma entidade","um nome verdadeiro que ninguém conhece","um medo mortal do escuro","uma carta que nunca ousou abrir"],
+sc:["Vocês entram numa taverna esfumaçada; um encapuzado observa do canto.","Um rugido ecoa pela masmorra e as tochas se apagam.","A ponte de corda range. Do outro lado, olhos brilham na névoa.","Um mercador oferece um mapa… por um preço estranho."],
+te:["Percepção","Furtividade","Atletismo","Salvaguarda de Sabedoria","Investigação"],
+ac:["avança com a arma em punho","examina o ambiente com cuidado","tenta uma abordagem diplomática","se esgueira pelas sombras","conjura algo arriscado"],
+dice:[4,6,8,10,12,20,100]},
+op:{nm:["Rafael","Camila","Davi","Helena","Otávio","Luana","Miguel","Bianca","Caio","Verônica","Tiago","Alice"],cls:["Combatente","Especialista","Ocultista"],sub:["Policial","Médico","Jornalista","Hacker","Padre","Estudante","Ex-militar","Artista"],
+lu:["São Paulo","uma cidadezinha de Minas","o Rio de Janeiro","Porto Alegre","uma ilha no litoral"],
+ev:["até presenciar algo que a ciência não explica","depois de sobreviver a um ritual no porão da escola","quando o sumiço do pai revelou símbolos estranhos","após ser salvo por agentes da Ordem","depois de ouvir sussurros no rádio da madrugada"],
+mo:["investiga o Outro Lado","quer proteger quem ama do Paranormal","busca a verdade sobre o Medo","caça uma seita que ronda a cidade","tenta manter a sanidade intacta"],
+se:["visões de uma Entidade que o observa","uma cicatriz que sangra com a lua","uma tatuagem que não lembra de ter feito","a voz de um falecido que o aconselha","um diário com rituais proibidos"],
+sc:["As luzes do corredor piscam e o rádio chia sussurros ininteligíveis.","Marcas de giz formam um símbolo na parede, ainda úmidas.","Um vulto cruza o fim da rua; a temperatura despenca.","No arquivo há uma pasta sem nome. Ela está quente."],
+te:["Investigação","Percepção","Vontade","Furtividade","Luta"],
+ac:["checa o local com a lanterna","tenta decifrar o símbolo","se posiciona para proteger o grupo","sussurra uma prece","aciona seu equipamento"],
+dice:[4,6,8,10,12,20,100]}};
+let S;
+function mk(sys){const d=D[sys],n=P(d.nm);return{name:n,cls:P(d.cls),sub:P(d.sub),lore:`${n} nasceu em ${P(d.lu)}, ${P(d.ev)}. Hoje ${P(d.mo)}, mas esconde ${P(d.se)}.`}}
+function upd(){const g=val('mode')=='grp',r=val('role');$('#gb').classList.toggle('hide',!g);
+ const o=$('#oth').value.split(',').map(s=>s.trim()).filter(Boolean);
+ $('#gsel').classList.toggle('hide',!(g&&r=='pl'));$('#gmw').innerHTML=o.map(x=>`<option>${esc(x)}</option>`).join('');
+ $('#hint').textContent=!g?(r=='gm'?'Você será o Mestre e 3 bots serão jogadores com personagens aleatórios.':'Você joga e 2 bots entram como jogadores; outro bot será o Mestre.'):'Entre amigos não entram bots. Todos jogam na mesma tela e alternam quem fala.'}
+document.querySelectorAll('input').forEach(i=>i.addEventListener('input',upd));upd();
+$('#go').onclick=()=>{
+ const sys=val('sys'),g=val('mode')=='grp',r=val('role'),me=$('#me').value.trim()||'Você';
+ const o=$('#oth').value.split(',').map(s=>s.trim()).filter(Boolean);
+ if(g&&!o.length)return alert('Adicione ao menos um outro jogador.');
+ let gm,pl=[];
+ const human=n=>{const c=mk(sys);return{...c,bot:false,name:n,ch:c.name}},bot=()=>{const c=mk(sys);return{...c,bot:true,ch:c.name}};
+ if(!g){ if(r=='gm'){gm={name:me,bot:false};pl=[bot(),bot(),bot()]}else{gm={name:'Mestre Bot',bot:true};pl=[human(me),bot(),bot()]}}
+ else{ if(r=='gm'){gm={name:me,bot:false};pl=o.map(human)}else{const w=$('#gmw').value;gm={name:w,bot:false};pl=[human(me),...o.filter(x=>x!=w).map(human)]}}
+ S={sys,name:$('#cn').value,gm,pl,g};
+ const L=$('#lore').value.trim();if(L&&r=='pl')pl[0].lore=L;
+ $('#setup').classList.add('hide');$('#game').classList.remove('hide');start()};
+function start(){
+ $('#gt').textContent=S.name;$('#gs').textContent=(S.sys=='dnd'?'D&D 5e':'Ordem Paranormal')+' · Mestre: '+S.gm.name+(S.gm.bot?' (bot)':'')+' · '+(S.pl.some(p=>p.bot)?'com bots':'só humanos');
+ const hs=[S.gm,...S.pl].filter(p=>!p.bot);$('#spk').innerHTML=hs.map(p=>`<option>${esc(p.name)}</option>`).join('');
+ const d=D[S.sys];$('#dd').innerHTML=d.dice.map(n=>`<button onclick="rd(${n})">d${n}</button>`).join('');
+ $('#sp').innerHTML=S.sys=='dnd'?'<button onclick="adv(1)">d20 Vantagem</button><button onclick="adv(0)">d20 Desvantagem</button>':'<button onclick="opt()">Teste de atributo (qtd = dados; 0 = pior de 2)</button>';
+ side();$('#log').innerHTML='';
+ say('gm',S.gm.name,S.gm.bot?`Bem-vindos a “${esc(S.name)}”. ${P(d.sc)}`:'A mesa foi aberta. Mestre, narre a cena inicial!');
+ if(S.gm.bot)S.pl.filter(p=>p.bot).forEach(p=>setTimeout(()=>botAct(p),500))}
+function side(){let h=`<div class="card"><h3>Mesa</h3><b>🎭 ${esc(S.gm.name)}</b> <span class="mu">Mestre${S.gm.bot?' (bot)':''}</span></div>`;
+ S.pl.forEach((p,i)=>h+=`<div class="card"><b>${esc(p.ch)}</b> <span class="mu">${p.bot?'bot':'jogado por '+esc(p.name)}</span>${p.bot?`<div>${esc(p.cls)} · ${esc(p.sub)}</div>`:`<label>Nome do personagem</label><input type="text" value="${esc(p.ch)}" oninput="S.pl[${i}].ch=this.value"><label>Classe</label><select onchange="S.pl[${i}].cls=this.value">${opts(D[S.sys].cls,p.cls)}</select><label>${S.sys=='dnd'?'Raça':'Origem'}</label><select onchange="S.pl[${i}].sub=this.value">${opts(D[S.sys].sub,p.sub)}</select>`}<details${p.bot?'':' open'}><summary>Lore</summary>${p.bot?`<p>${esc(p.lore)}</p>`:`<textarea rows="6" oninput="S.pl[${i}].lore=this.value">${esc(p.lore)}</textarea>`}</details>${p.bot?'':`<button onclick="rr(${i})">🎲 Novo personagem</button>`}</div>`);$('#side').innerHTML=h}
+const opts=(a,v)=>a.map(x=>`<option${x==v?' selected':''}>${esc(x)}</option>`).join('');
+function rr(i){const p=S.pl[i],c=mk(S.sys);p.ch=c.name;p.cls=c.cls;p.sub=c.sub;p.lore=c.lore;side()}
+function say(k,w,t){const l=$('#log');l.insertAdjacentHTML('beforeend',`<div class="m ${k}"><b>${esc(w)}:</b> ${t}</div>`);l.scrollTop=l.scrollHeight}
+function dline(w,lab,rolls,tot,note,cls){say('',w,`<div class="dice ${cls||''}">🎲 ${lab}: [${rolls.join(', ')}] = <b>${tot}</b> ${note||''}</div>`)}
+function crit(rolls,sides,tot){return sides==20?(tot.k==20?['c',' ✨ Crítico!']:tot.k==1?['f',' 💀 Falha crítica!']:['','']):['','']}
+function roll(w,n,s,m){const rs=Array.from({length:n},()=>R(s)),t=rs.reduce((a,b)=>a+b,0)+m;
+ let c='',note='';if(s==20&&n==1){if(rs[0]==20){c='c';note=' ✨ Crítico!'}if(rs[0]==1){c='f';note=' 💀 Falha crítica!'}}
+ dline(w,`${n}d${s}${m?(m>0?'+':'')+m:''}`,rs,t,note,c);return t}
+const who=()=>$('#spk').value,qt=()=>Math.max(1,Math.min(30,+$('#qt').value||1)),md=()=>+$('#md').value||0;
+function rd(s){const w=who(),t=roll(w,qt(),s,md());gmReact(t)}
+function adv(up){const w=who(),a=R(20),b=R(20),k=up?Math.max(a,b):Math.min(a,b),t=k+md();
+ dline(w,`d20 ${up?'Vantagem':'Desvantagem'}${md()?(md()>0?'+':'')+md():''}`,[a,b],t,k==20?'✨ Crítico!':k==1?'💀 Falha crítica!':'',k==20?'c':k==1?'f':'');gmReact(t)}
+function opt(){const w=who(),n=Math.max(0,Math.min(10,+$('#qt').value||0)),c=n==0?2:n,rs=Array.from({length:c},()=>R(20)),k=n==0?Math.min(...rs):Math.max(...rs),t=k+md();
+ dline(w,`Atributo ${n} (${n==0?'pior':'melhor'} de ${c}d20)${md()?(md()>0?'+':'')+md():''}`,rs,t,k==20?'✨ Sucesso extremo!':k==1?'💀 Desastre!':'',k==20?'c':k==1?'f':'');gmReact(t)}
+function gmReact(t){if(!S.gm.bot)return;setTimeout(()=>say('gm',S.gm.name,t>=15?P(['Funcionou melhor do que você esperava.','Um sucesso claro! A cena se abre à sua frente.']):t>=9?'Você consegue, mas com algum custo.':P(['Algo dá errado… e o ambiente reage.','Falhou. O perigo se aproxima.'])),500)}
+function botAct(p){const d=D[S.sys],t=R(20);say('',p.name,`<i>${esc(p.cls)} ${P(d.ac)}.</i>`);dline(p.name,`d20 (${P(d.te)})`,[t],t,t==20?'✨ Crítico!':t==1?'💀 Falha crítica!':'',t==20?'c':t==1?'f':'')}
+function send(){const t=$('#txt').value.trim();if(!t)return;const w=who();$('#txt').value='';
+ say(w==S.gm.name?'gm':'',w,esc(t));
+ const bots=S.pl.filter(p=>p.bot);if(!bots.length)return;
+ if(w==S.gm.name)bots.forEach((p,i)=>setTimeout(()=>botAct(p),600*(i+1)));
+ else{ if(S.gm.bot)setTimeout(()=>say('gm',S.gm.name,`${P(D[S.sys].sc)} Façam um teste de <b>${P(D[S.sys].te)}</b>.`),600);
+  bots.filter(p=>p.bot).forEach((p,i)=>setTimeout(()=>botAct(p),1400+700*i))}}
+$('#snd').onclick=send;$('#txt').addEventListener('keydown',e=>{if(e.key=='Enter')send()});
+</script></body></html>
